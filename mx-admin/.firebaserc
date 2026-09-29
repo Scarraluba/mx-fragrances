@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "matengefragrances"
+  },
+  "targets": {
+    "matengefragrances": {
+      "hosting": {
+        "matengefragrances": [
+          "matengefragrances"
+        ],
+        "matengefragrances-admin": [
+          "matengefragrances-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

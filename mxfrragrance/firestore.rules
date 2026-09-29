@@ -1,0 +1,184 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // AUTHENTICATION
+    // =========================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn()
+      && request.auth.uid == userId;
+    }
+
+    // =========================================================
+    // ADMIN
+    // =========================================================
+
+    function adminDocument() {
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+      && exists(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      )
+      && adminDocument().data.role == "admin";
+    }
+
+    function isActiveAdmin() {
+      return isAdmin();
+    }
+
+    // =========================================================
+    // SETTINGS
+    // =========================================================
+
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // USERS
+    // =========================================================
+
+    match /users/{userId} {
+
+      allow read: if isOwner(userId) || isActiveAdmin();
+
+      allow create: if isOwner(userId);
+
+      allow update: if isOwner(userId) || isActiveAdmin();
+
+      allow delete: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // CART
+    // =========================================================
+
+    match /cart/{cartId} {
+
+      // Query/listen:
+      // request.auth.uid must own the returned document.
+      allow read: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+
+      // User can only create a document belonging to themselves.
+      allow create: if isSignedIn()
+      && request.resource.data.userId == request.auth.uid;
+
+      // User cannot change ownership.
+      allow update: if isSignedIn()
+      && resource.data.userId == request.auth.uid
+      && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+    }
+
+    // =========================================================
+    // WISHLIST
+    // =========================================================
+
+    match /wishlist/{wishlistId} {
+
+      allow read: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+      && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+      && resource.data.userId == request.auth.uid
+      && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+    }
+
+    // =========================================================
+    // PRODUCTS
+    // =========================================================
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // COMBOS
+    // =========================================================
+
+    match /combos/{comboId} {
+      allow read: if true;
+      allow write: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // STOREFRONT
+    // =========================================================
+
+    match /storefront/{document} {
+      allow read: if true;
+      allow write: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // ORDERS
+    // =========================================================
+
+    match /orders/{orderId} {
+
+      allow read: if isSignedIn()
+      && (
+        resource.data.userId == request.auth.uid
+        || isActiveAdmin()
+      );
+
+      allow create: if isSignedIn()
+      && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isActiveAdmin();
+
+      allow delete: if isActiveAdmin();
+    }
+
+    // =========================================================
+    // ADDRESS BOOK
+    // =========================================================
+
+    match /addressbook/{addressId} {
+
+      allow read: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+      && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+      && resource.data.userId == request.auth.uid
+      && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if isSignedIn()
+      && resource.data.userId == request.auth.uid;
+    }
+
+    // =========================================================
+    // COUNTERS
+    // =========================================================
+
+    match /counters/{document} {
+      allow read, write: if isActiveAdmin();
+    }
+  }
+}
